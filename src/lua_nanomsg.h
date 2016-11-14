@@ -12,7 +12,7 @@
 #define LUANANOMSG_COPYRIGHT "Copyright (C) 2016, Zaher Marzuq"
 #define LUANANOMSG_DESCRIPTION "nanomsg binding for Lua"
 
-//LUALIB_API int lnn_socket(lua_State *L);
+LUALIB_API int lnn_socket(lua_State *L);
 LUALIB_API int lnn_close(lua_State *L);
 LUALIB_API int lnn_setsockopt(lua_State *L);
 LUALIB_API int lnn_getsockopt (lua_State *L);

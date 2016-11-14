@@ -6,5 +6,5 @@ print("description:", nanomsg._DESCRIPTION)
 
 
 for k,v in pairs(nanomsg) do
-  print("k=", k, "v=", v)
+  print("k = ", k, "v = ", v)
 end

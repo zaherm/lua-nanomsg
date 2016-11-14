@@ -55,6 +55,69 @@ LUALIB_API void lnn_push_symbols(lua_State *L) {
   }
 }
 
+/*** s: socket ***/
+lnn_socket_t* lnn_get_socket(lua_State *L, int index) {
+  lnn_socket_t *s = (lnn_socket_t *) luaL_checkudata(L, index, "socket");
+  luaL_argcheck(L, s != NULL, index, "socket expected");
+  return s;
+}
+
+LUALIB_API int lnn_socket(lua_State *L) {
+  int domain = luaL_optnumber(L, 1, AF_SP);
+  int protocol = luaL_optnumber(L, 2, NN_REQ);
+  int fd = nn_socket(domain, protocol);
+  if(fd >= 0) {
+    lnn_socket_t *s = (lnn_socket_t *) lua_newuserdata(L, sizeof(lnn_socket_t));
+    s->domain = domain;
+    s->protocol = protocol;
+    s->fd = fd;
+    setmeta(L, "socket");
+    return 1;
+  }
+  return 0;
+}
+
+LUALIB_API int lnn_socket_setopt(lua_State *L) {
+  lnn_socket_t *s = lnn_get_socket(L, 1);
+  int level = luaL_checkint(L, 2);
+  int option = luaL_checkint(L, 3);
+  int opttype = lua_type(L, 4);
+  switch(opttype) {
+    case LUA_TSTRING: {
+      size_t optvallen;
+      const char* optval = luaL_checklstring(L, 4, &optvallen);
+      nn_setsockopt(s->fd, level, option, optval, optvallen);
+      break;
+    }
+    case LUA_TNUMBER: {
+      int optval = luaL_checkint(L, 4);
+      nn_setsockopt(s->fd, level, option, &optval, sizeof(optval));
+      break;
+    }
+  }
+  return 0;
+}
+
+/* int nn_getsockopt (int s, int level, int option,
+ *                    void *optval, size_t *optvallen);
+ */
+
+LUALIB_API int lnn_socket_getopt(lua_State *L) {
+  lnn_socket_t *s = lnn_get_socket(L, 1);
+  int level = luaL_checkint(L, 2);
+  int option = luaL_checkint(L, 3);
+  void *optval;
+  size_t optvallen;
+  int rc = nn_getsockopt(s->fd, level, option, &optval, &optvallen);
+  if(rc != -1) {
+    lua_pushinteger(L, (int)optval);
+    return 1;
+  }
+  return 0;
+}
+
+/*** e: soket ***/
+
 LUALIB_API lnn_connection_t *lnn_get_connection(lua_State *L, size_t index) {
   lnn_connection_t *c = (lnn_connection_t *) luaL_checkudata(L, index, "connection");
   luaL_argcheck(L, c != NULL, index, "connection expected");
@@ -68,51 +131,33 @@ LUALIB_API void lnn_push_connection(lua_State *L, lnn_socket_t *socket, int eid)
   setmeta(L, "connection");
 }
 
-/* socket params expected 2 & 3 */
-LUALIB_API lnn_socket_t* lnn_socket(lua_State *L) {
-    int domain = luaL_optnumber(L, 2, AF_SP);
-    int protocol = luaL_optnumber(L, 3, NN_REQ);
-    int socket = nn_socket(domain, protocol);
-    /* success */
-    if(socket >= 0) {
-      lnn_socket_t *s = malloc(sizeof(lnn_socket_t));
-      s->domain = domain;
-      s->protocol = protocol;
-      s->fd = socket;
-      return s;
-    }
-    return NULL;
-}
 
 LUALIB_API int lnn_bind(lua_State *L) {
-    const char *addr = luaL_checkstring(L, 1);
-    lnn_socket_t *socket = lnn_socket(L);
-    if(socket != NULL) {
-      int to = 100;
-      nn_setsockopt(socket->fd, NN_SOL_SOCKET, NN_RCVTIMEO, &to, sizeof(to));
-      nn_setsockopt(socket->fd, NN_SOL_SOCKET, NN_SNDTIMEO, &to, sizeof(to));
-      int eid = nn_bind(socket->fd, addr);
-      if(eid >= 0) {
-        lnn_push_connection(L, socket, eid);
-      }
+  lnn_socket_t *socket = lnn_get_socket(L, 1);
+  const char *addr = luaL_checkstring(L, 2);
+
+  if(socket != NULL && socket->fd >= 0) {
+    int eid = nn_bind(socket->fd, addr);
+    if(eid >= 0) {
+      lnn_push_connection(L, socket, eid);
+      return 1;
     }
-    return 1;
+  }
+  return 0;
 }
 
 LUALIB_API int lnn_connect(lua_State *L) {
-  const char *addr = luaL_checkstring(L, 1);
-  lnn_socket_t *socket = lnn_socket(L);
-  /* success */
-  if(socket != NULL) {
-    int to = 200;
-    nn_setsockopt(socket->fd, NN_SOL_SOCKET, NN_RCVTIMEO, &to, sizeof(to));
-    nn_setsockopt(socket->fd, NN_SOL_SOCKET, NN_SNDTIMEO, &to, sizeof(to));
+  lnn_socket_t *socket = lnn_get_socket(L, 1);
+  const char *addr = luaL_checkstring(L, 2);
+
+  if(socket != NULL && socket->fd >= 0) {
     int eid = nn_connect(socket->fd, addr);
     if(eid >= 0) {
       lnn_push_connection(L, socket, eid);
+      return 1;
     }
   }
-  return 1;
+  return 0;
 }
 
 LUALIB_API int lnn_send(lua_State *L) {
@@ -156,10 +201,18 @@ static const struct luaL_Reg connection_reg[] = {
   { NULL, NULL }
 };
 
-static const luaL_Reg funcs[] = {
+static const luaL_Reg nanomsg_reg[] = {
   { "connect", lnn_connect },
   { "bind", lnn_bind },
   { "errno", lnn_errno },
+  { "socket", lnn_socket },
+  { NULL, NULL }
+};
+
+/* socket methods */
+static const struct luaL_Reg socket_reg[] = {
+  { "setopt", lnn_socket_setopt },
+  { "getopt", lnn_socket_getopt },
   { NULL, NULL }
 };
 
@@ -167,7 +220,9 @@ LUALIB_API int luaopen_nanomsg(lua_State *L) {
   lua_newtable(L);
   createmeta(L, "connection", connection_reg);
 
-  luaL_setfuncs(L, funcs, 0);
+  createmeta(L, "socket", socket_reg);
+
+  luaL_setfuncs(L, nanomsg_reg, 0);
 
   lua_pushliteral(L, LUANANOMSG_VERSION);
   lua_setfield(L, -2, "_VERSION");
