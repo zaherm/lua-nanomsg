@@ -23,6 +23,8 @@ LUALIB_API int lnn_send(lua_State *L);
 LUALIB_API int lnn_recv(lua_State *L);
 LUALIB_API int lnn_sendmsg(lua_State *L);
 LUALIB_API int lnn_recvmsg(lua_State *L);
+LUALIB_API int lnn_errno(lua_State *L);
+LUALIB_API int lnn_strerror(lua_State *L);
 
 typedef struct {
   int domain;

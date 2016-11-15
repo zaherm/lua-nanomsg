@@ -194,6 +194,18 @@ LUALIB_API int lnn_errno(lua_State *L) {
   return 1;
 }
 
+LUALIB_API int lnn_strerror(lua_State *L) {
+  int errnum = luaL_checkint(L, 1);
+  if(errnum) {
+    const char* err = nn_strerror(errno);
+    if(err) {
+      lua_pushstring(L, err);
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static const struct luaL_Reg connection_reg[] = {
   { "send", lnn_send },
   { "recv", lnn_recv },
@@ -205,6 +217,7 @@ static const luaL_Reg nanomsg_reg[] = {
   { "connect", lnn_connect },
   { "bind", lnn_bind },
   { "errno", lnn_errno },
+  { "strerror", lnn_strerror },
   { "socket", lnn_socket },
   { NULL, NULL }
 };
@@ -218,10 +231,10 @@ static const struct luaL_Reg socket_reg[] = {
 
 LUALIB_API int luaopen_nanomsg(lua_State *L) {
   lua_newtable(L);
+
   lnn_createmeta(L, "connection", connection_reg);
-
   lnn_createmeta(L, "socket", socket_reg);
-
+  lnn_push_symbols(L);
   luaL_setfuncs(L, nanomsg_reg, 0);
 
   lua_pushliteral(L, LUANANOMSG_VERSION);
@@ -231,6 +244,5 @@ LUALIB_API int luaopen_nanomsg(lua_State *L) {
   lua_pushliteral(L, LUANANOMSG_DESCRIPTION);
   lua_setfield(L, -2, "_DESCRIPTION");
 
-  lnn_push_symbols(L);
   return 1;
 }
