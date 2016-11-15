@@ -110,13 +110,13 @@ LUALIB_API int lnn_socket_getopt(lua_State *L) {
   size_t optvallen;
   int rc = nn_getsockopt(s->fd, level, option, &optval, &optvallen);
   if(rc != -1) {
-    lua_pushinteger(L, (int)optval);
+    lua_pushinteger(L, optval);
     return 1;
   }
   return 0;
 }
 
-/*** e: soket ***/
+/*** e: socket ***/
 
 LUALIB_API lnn_connection_t *lnn_get_connection(lua_State *L, size_t index) {
   lnn_connection_t *c = (lnn_connection_t *) luaL_checkudata(L, index, "connection");
@@ -190,8 +190,9 @@ LUALIB_API int lnn_errno(lua_State *L) {
   int rc = nn_errno();
   if(rc) {
     lua_pushinteger(L, rc);
+    return 1;
   }
-  return 1;
+  return 0;
 }
 
 LUALIB_API int lnn_strerror(lua_State *L) {
