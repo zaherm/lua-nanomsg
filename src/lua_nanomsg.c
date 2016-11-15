@@ -15,12 +15,12 @@ LUALIB_API void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
 }
 #endif
 
-LUALIB_API void setmeta(lua_State *L, const char *name) {
+LUALIB_API void lnn_setmeta(lua_State *L, const char *name) {
   luaL_getmetatable(L, name);
   lua_setmetatable(L, -2);
 }
 
-LUALIB_API int createmeta(lua_State *L, const char *name, const luaL_Reg *methods) {
+LUALIB_API int lnn_createmeta(lua_State *L, const char *name, const luaL_Reg *methods) {
   if (!luaL_newmetatable(L, name)) {
     return 0;
   }
@@ -71,7 +71,7 @@ LUALIB_API int lnn_socket(lua_State *L) {
     s->domain = domain;
     s->protocol = protocol;
     s->fd = fd;
-    setmeta(L, "socket");
+    lnn_setmeta(L, "socket");
     return 1;
   }
   return 0;
@@ -128,7 +128,7 @@ LUALIB_API void lnn_push_connection(lua_State *L, lnn_socket_t *socket, int eid)
   lnn_connection_t *c = (lnn_connection_t *) lua_newuserdata(L, sizeof(lnn_connection_t));
   c->eid = eid;
   c->socket = socket;
-  setmeta(L, "connection");
+  lnn_setmeta(L, "connection");
 }
 
 
@@ -218,9 +218,9 @@ static const struct luaL_Reg socket_reg[] = {
 
 LUALIB_API int luaopen_nanomsg(lua_State *L) {
   lua_newtable(L);
-  createmeta(L, "connection", connection_reg);
+  lnn_createmeta(L, "connection", connection_reg);
 
-  createmeta(L, "socket", socket_reg);
+  lnn_createmeta(L, "socket", socket_reg);
 
   luaL_setfuncs(L, nanomsg_reg, 0);
 
