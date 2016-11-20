@@ -94,6 +94,10 @@ LUALIB_API int lnn_socket_setopt(lua_State *L) {
       nn_setsockopt(s->fd, level, option, &optval, sizeof(optval));
       break;
     }
+    default: {
+      luaL_error(L, "unkown type");
+      break;
+    }
   }
   return 0;
 }
@@ -106,12 +110,45 @@ LUALIB_API int lnn_socket_getopt(lua_State *L) {
   lnn_socket_t *s = lnn_get_socket(L, 1);
   int level = luaL_checkint(L, 2);
   int option = luaL_checkint(L, 3);
-  void *optval;
-  size_t optvallen;
-  int rc = nn_getsockopt(s->fd, level, option, &optval, &optvallen);
-  if(rc != -1) {
-    lua_pushinteger(L, optval);
-    return 1;
+    int rc = -1;
+  switch(option) {
+    case NN_LINGER:
+    case NN_SNDBUF:
+    case NN_RCVBUF:
+    case NN_SNDTIMEO:
+    case NN_RCVTIMEO:
+    case NN_RECONNECT_IVL:
+    case NN_RECONNECT_IVL_MAX:
+    case NN_SNDPRIO:
+    case NN_RCVPRIO:
+    case NN_SNDFD:
+    case NN_RCVFD:
+    case NN_DOMAIN:
+    case NN_PROTOCOL:
+    case NN_IPV4ONLY:
+    case NN_RCVMAXSIZE:
+    case NN_MAXTTL: {
+      int optval;
+      size_t optvallen = sizeof(optval);
+      rc = nn_getsockopt(s->fd, level, option, &optval, &optvallen);
+      if(rc != -1) {
+        lua_pushinteger(L, optval);
+      }
+      break;
+    }
+    case NN_SOCKET_NAME: {
+      char buf[8];
+      size_t sz = sizeof(buf);
+      rc = nn_getsockopt(s->fd, level, option, &buf, &sz);
+      printf("ccc = %s", buf);
+      if(rc != -1) {
+        lua_pushlstring(L, buf, sz);
+      }
+      break;
+    }
+  }
+  if(rc == -1) {
+    lua_pushnil(L);
   }
   return 0;
 }
