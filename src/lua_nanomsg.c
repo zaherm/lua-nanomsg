@@ -110,7 +110,7 @@ LUALIB_API int lnn_socket_getopt(lua_State *L) {
   lnn_socket_t *s = lnn_get_socket(L, 1);
   int level = luaL_checkint(L, 2);
   int option = luaL_checkint(L, 3);
-    int rc = -1;
+  int rc = -1;
   switch(option) {
     case NN_LINGER:
     case NN_SNDBUF:
@@ -132,7 +132,7 @@ LUALIB_API int lnn_socket_getopt(lua_State *L) {
       size_t optvallen = sizeof(optval);
       rc = nn_getsockopt(s->fd, level, option, &optval, &optvallen);
       if(rc != -1) {
-        lua_pushinteger(L, optval);
+        lua_pushnumber(L, optval);
       }
       break;
     }
@@ -140,7 +140,6 @@ LUALIB_API int lnn_socket_getopt(lua_State *L) {
       char buf[8];
       size_t sz = sizeof(buf);
       rc = nn_getsockopt(s->fd, level, option, &buf, &sz);
-      printf("ccc = %s", buf);
       if(rc != -1) {
         lua_pushlstring(L, buf, sz);
       }
@@ -150,7 +149,7 @@ LUALIB_API int lnn_socket_getopt(lua_State *L) {
   if(rc == -1) {
     lua_pushnil(L);
   }
-  return 0;
+  return 1;
 }
 
 /*** e: socket ***/
