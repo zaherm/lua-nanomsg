@@ -132,7 +132,7 @@ LUALIB_API int lnn_socket_getopt(lua_State *L) {
       size_t optvallen = sizeof(optval);
       rc = nn_getsockopt(s->fd, level, option, &optval, &optvallen);
       if(rc != -1) {
-        lua_pushnumber(L, optval);
+        lua_pushinteger(L, optval);
       }
       break;
     }
