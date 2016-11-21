@@ -30,11 +30,7 @@ typedef struct {
   int domain;
   int protocol;
   int fd;
-} lnn_socket_t;
-/* connection struct */
-typedef struct {
   int eid;
-  lnn_socket_t *socket;
   const char *addr;
-} lnn_connection_t;
+} lnn_socket_t;
 
