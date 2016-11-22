@@ -32,5 +32,6 @@ typedef struct {
   int fd;
   int eid;
   const char *addr;
+  unsigned char closed;
 } lnn_socket_t;
 

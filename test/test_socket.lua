@@ -33,6 +33,8 @@ while i < 5 do
   end
 end
 
+server:close()
+client:close()
 server:shutdown()
 client:shutdown()
 

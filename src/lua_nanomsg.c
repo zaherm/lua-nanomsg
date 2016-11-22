@@ -162,6 +162,7 @@ LUALIB_API int lnn_bind(lua_State *L) {
   int ret = 0;
   socket->eid = nn_bind(socket->fd, addr);
   if(socket->eid >= 0) {
+    socket->closed = 0;
     ret = 1;
     lua_pushboolean(L, 1);
   }
@@ -178,6 +179,7 @@ LUALIB_API int lnn_connect(lua_State *L) {
   int ret = 0;
   socket->eid = nn_connect(socket->fd, socket->addr);
   if(socket->eid >= 0) {
+    socket->closed = 0;
     ret = 1;
     lua_pushboolean(L, 1);
   }
@@ -226,6 +228,15 @@ LUALIB_API int lnn_shutdown(lua_State *L) {
   return 1;
 }
 
+LUALIB_API int lnn_socket_close(lua_State *L) {
+  lnn_socket_t *socket = lnn_get_socket(L, 1);
+  if(socket->closed == 0) {
+    nn_close(socket->fd);
+    socket->closed = 1;
+  }
+  return 1;
+}
+
 LUALIB_API int lnn_errno(lua_State *L) {
   int rc = nn_errno();
   if(rc) {
@@ -247,6 +258,12 @@ LUALIB_API int lnn_strerror(lua_State *L) {
   return 0;
 }
 
+LUALIB_API int lnn_gc(lua_State *L) {
+  lnn_socket_close(L);
+  lnn_shutdown(L);
+  return 1;
+}
+
 static const luaL_Reg nanomsg_reg[] = {
   { "errno", lnn_errno },
   { "strerror", lnn_strerror },
@@ -263,7 +280,8 @@ static const struct luaL_Reg socket_reg[] = {
   { "shutdown", lnn_shutdown },
   { "setopt", lnn_socket_setopt },
   { "getopt", lnn_socket_getopt },
-  { "__gc", lnn_shutdown },
+  { "close", lnn_socket_close },
+  { "__gc", lnn_gc },
   { NULL, NULL }
 };
 
